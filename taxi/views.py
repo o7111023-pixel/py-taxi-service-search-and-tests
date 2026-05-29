@@ -12,8 +12,6 @@ from .forms import DriverCreationForm, DriverLicenseUpdateForm, CarForm
 
 @login_required
 def index(request):
-    """View function for the home page of the site."""
-
     num_drivers = Driver.objects.count()
     num_cars = Car.objects.count()
     num_manufacturers = Manufacturer.objects.count()
@@ -21,14 +19,16 @@ def index(request):
     num_visits = request.session.get("num_visits", 0)
     request.session["num_visits"] = num_visits + 1
 
-    context = {
-        "num_drivers": num_drivers,
-        "num_cars": num_cars,
-        "num_manufacturers": num_manufacturers,
-        "num_visits": num_visits + 1,
-    }
-
-    return render(request, "taxi/index.html", context=context)
+    return render(
+        request,
+        "taxi/index.html",
+        {
+            "num_drivers": num_drivers,
+            "num_cars": num_cars,
+            "num_manufacturers": num_manufacturers,
+            "num_visits": num_visits + 1,
+        },
+    )
 
 
 class ManufacturerListView(LoginRequiredMixin, generic.ListView):
@@ -43,8 +43,8 @@ class ManufacturerListView(LoginRequiredMixin, generic.ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(name__icontains=query) |
-                Q(country__icontains=query)
+                Q(name__icontains=query)
+                | Q(country__icontains=query)
             )
 
         return queryset
@@ -78,8 +78,8 @@ class CarListView(LoginRequiredMixin, generic.ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(model__icontains=query) |
-                Q(manufacturer__name__icontains=query)
+                Q(model__icontains=query)
+                | Q(manufacturer__name__icontains=query)
             )
 
         return queryset
@@ -116,9 +116,9 @@ class DriverListView(LoginRequiredMixin, generic.ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(username__icontains=query) |
-                Q(first_name__icontains=query) |
-                Q(last_name__icontains=query)
+                Q(username__icontains=query)
+                | Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
             )
 
         return queryset
@@ -142,16 +142,18 @@ class DriverLicenseUpdateView(LoginRequiredMixin, generic.UpdateView):
 
 class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
     model = Driver
-    success_url = reverse_lazy("")
+    success_url = reverse_lazy("taxi:driver-list")
 
 
 @login_required
 def toggle_assign_to_car(request, pk):
     driver = request.user
-    if (
-        Car.objects.get(id=pk) in driver.cars.all()
-    ):
+
+    if Car.objects.get(id=pk) in driver.cars.all():
         driver.cars.remove(pk)
     else:
         driver.cars.add(pk)
-    return HttpResponseRedirect(reverse_lazy("taxi:car-detail", args=[pk]))
+
+    return HttpResponseRedirect(
+        reverse_lazy("taxi:car-detail", args=[pk])
+    )
