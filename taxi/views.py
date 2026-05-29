@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 
 from .models import Driver, Car, Manufacturer
 from .forms import DriverCreationForm, DriverLicenseUpdateForm, CarForm
@@ -41,7 +42,10 @@ class ManufacturerListView(LoginRequiredMixin, generic.ListView):
         query = self.request.GET.get("q")
 
         if query:
-            queryset = queryset.filter(name__icontains=query)
+            queryset = queryset.filter(
+                Q(name__icontains=query) |
+                Q(country__icontains=query)
+            )
 
         return queryset
 
@@ -73,7 +77,10 @@ class CarListView(LoginRequiredMixin, generic.ListView):
         query = self.request.GET.get("q")
 
         if query:
-            queryset = queryset.filter(model__icontains=query)
+            queryset = queryset.filter(
+                Q(model__icontains=query) |
+                Q(manufacturer__name__icontains=query)
+            )
 
         return queryset
 
@@ -104,11 +111,15 @@ class DriverListView(LoginRequiredMixin, generic.ListView):
     paginate_by = 5
 
     def get_queryset(self):
-        queryset = Driver.objects.select_related("user")
+        queryset = Driver.objects.all()
         query = self.request.GET.get("q")
 
         if query:
-            queryset = queryset.filter(user__username__icontains=query)
+            queryset = queryset.filter(
+                Q(username__icontains=query) |
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query)
+            )
 
         return queryset
 
@@ -136,7 +147,7 @@ class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
 
 @login_required
 def toggle_assign_to_car(request, pk):
-    driver = Driver.objects.get(id=request.user.id)
+    driver = request.user
     if (
         Car.objects.get(id=pk) in driver.cars.all()
     ):
