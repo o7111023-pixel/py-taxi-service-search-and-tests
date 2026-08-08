@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from taxi.models import Driver, Manufacturer, Car
+from taxi.forms import SearchForm
 
 
 class SearchTests(TestCase):
@@ -65,3 +66,46 @@ class SearchTests(TestCase):
 
         self.assertContains(response, "BMW")
         self.assertNotContains(response, "Tesla")
+
+    def test_search_form_empty_query_is_valid(self):
+        form = SearchForm(data={"query": ""})
+
+        self.assertTrue(form.is_valid())
+
+    def test_search_form_query_is_valid(self):
+        form = SearchForm(data={"query": "BMW"})
+
+        self.assertTrue(form.is_valid())
+
+    def test_search_form_in_driver_context(self):
+        response = self.client.get(reverse("taxi:driver-list"))
+
+        self.assertIn("search_form", response.context)
+
+    def test_search_form_in_car_context(self):
+        response = self.client.get(reverse("taxi:car-list"))
+
+        self.assertIn("search_form", response.context)
+
+    def test_search_form_in_manufacturer_context(self):
+        response = self.client.get(reverse("taxi:manufacturer-list"))
+
+        self.assertIn("search_form", response.context)
+
+    def test_empty_driver_query_returns_all(self):
+        response = self.client.get(reverse("taxi:driver-list"))
+
+        self.assertContains(response, "john")
+        self.assertContains(response, "alex")
+
+    def test_empty_car_query_returns_all(self):
+        response = self.client.get(reverse("taxi:car-list"))
+
+        self.assertContains(response, "X5")
+        self.assertContains(response, "Model S")
+
+    def test_empty_manufacturer_query_returns_all(self):
+        response = self.client.get(reverse("taxi:manufacturer-list"))
+
+        self.assertContains(response, "BMW")
+        self.assertContains(response, "Tesla")
